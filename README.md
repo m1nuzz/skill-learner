@@ -54,17 +54,23 @@ Trigger this skill when:
 
 ## Installation
 
-Quick install with the bundled cross-host installer:
+One-line install (no clone required) — downloads the skill folder and
+copies it into your host's skills directory:
 
 ```bash
-git clone https://github.com/m1nuzz/skill-learner.git
-cd skill-learner
-bash skill-learner/scripts/install.sh           # auto-detects the host
-bash skill-learner/scripts/install.sh --all     # symlink into every known location
+curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash
 ```
 
-For manual install per host (hermes-agent, OpenClaw, Claude Code, generic
-AgentSkills runtime), see [`INSTALL.md`](INSTALL.md).
+To install into every known host path at once:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash -s -- --all
+```
+
+The installer **copies** the skill folder into the target directory by
+default — no symlinks, so you can delete the source after install. For
+developer mode (symlink from a clone for `git pull`-driven updates) and
+per-host manual install commands, see [`INSTALL.md`](INSTALL.md).
 
 ---
 
@@ -88,7 +94,7 @@ skill-learner/
     │   └── coexistence.md
     ├── scripts/
     │   ├── detect_host.sh        # Prints hermes | openclaw | claude-code | generic
-    │   └── install.sh            # Cross-host symlink installer
+    │   └── install.sh            # Cross-host installer (copy by default, symlink with --dev)
     └── evals/
         └── evals.json            # Trigger and behavior tests
 ```

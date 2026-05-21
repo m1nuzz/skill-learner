@@ -98,7 +98,10 @@ it natively (3rd precedence). hermes-agent can be configured to read it via
 
 ## Universal install (push to every known path)
 
-If the skill is portable and you want it visible everywhere:
+If the skill is portable and you want it visible everywhere, copy the skill
+folder into each host's directory. The bundled `scripts/install.sh --all`
+does this for `skill-learner` itself; for an arbitrary skill, the pattern
+is:
 
 ```bash
 SRC="<absolute path to the skill folder>"
@@ -108,11 +111,16 @@ for dest in \
   "$HOME/.agents/skills/<name>" \
   "$HOME/.claude/skills/<name>"; do
     mkdir -p "$(dirname "$dest")"
-    ln -snf "$SRC" "$dest"
+    rm -rf "$dest"
+    cp -R "$SRC" "$dest"
 done
 ```
 
-Symlinks (not copies) — updates to the source folder propagate immediately.
+Copy by default (`cp -R`) — the install survives deleting the source.
+Symlinks are reserved for **developer mode**, where the source clone lives
+at a stable path (e.g. `~/code/<repo>`) and updates propagate via
+`git pull`. Never symlink from `/tmp`, `/var/tmp`, or any other path that
+may be wiped between reboots.
 
 ---
 
@@ -122,4 +130,5 @@ Symlinks (not copies) — updates to the source folder propagate immediately.
   paths were broken at one point (hermes issue #9949, since fixed) and are
   still risky depending on the starting cwd of the runtime.
 - `skills.load.extraDirs` in OpenClaw: absolute or workspace-relative.
-- Symlink targets: always absolute.
+- Symlink targets (developer mode only): always absolute and rooted at a
+  persistent path.

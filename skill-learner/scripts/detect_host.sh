@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Print one of: hermes | openclaw | claude-code | generic
-# Used by install.sh and by the Codify phase to pick the correct skills path.
+#
+# Standalone utility — the logic is also inlined in install.sh so that the
+# `curl ... | bash` install path works without needing two files.
 
 set -euo pipefail
 
