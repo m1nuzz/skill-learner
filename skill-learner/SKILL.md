@@ -1,12 +1,12 @@
 ---
 name: skill-learner
-description: Use this skill when the user wants Claude to learn a new capability through trial, error correction, and iteration — then save the successful workflow as a reusable skill. Trigger whenever the user says things like "learn how to do X", "teach yourself to do X", "figure it out and save it", "practice until it works then make a skill", or "try until it works and create a reusable workflow". Also trigger when the user wants to capture a successful multi-step workflow from the current conversation into a skill. Always use this skill over ad-hoc attempts when the goal is a repeatable, saved capability.
+description: Use this skill when the user wants the agent to learn a new capability through trial, error correction, and iteration — then save the successful workflow as a reusable skill. Trigger whenever the user says things like "learn how to do X", "teach yourself to do X", "figure it out and save it", "practice until it works then make a skill", or "try until it works and create a reusable workflow". Also trigger when the user wants to capture a successful multi-step workflow from the current conversation into a skill. Always use this skill over ad-hoc attempts when the goal is a repeatable, saved capability.
 ---
 
 # Skill Learner
 
 ## Purpose
-Enable Claude to acquire new capabilities by attempting a task, observing failures, correcting mistakes, and iterating until success — then codify the working workflow into a reusable skill file.
+Enable the agent to acquire new capabilities by attempting a task, observing failures, correcting mistakes, and iterating until success — then codify the working workflow into a reusable skill file.
 
 ## Inputs
 - A clear description of what the agent should learn to do
@@ -67,7 +67,7 @@ After confirmed success, create a new skill:
 
 1. Identify the skill name (short kebab-case, e.g. `pdf-extractor`, `api-tester`).
 2. Write a clean `SKILL.md` — distilled workflow only, no failure history.
-3. Save to `/mnt/skills/user/<skill-name>/SKILL.md`.
+3. Save to the agent's skills directory (e.g. `.agents/skills/<skill-name>/SKILL.md`).
 
 Use this template for the generated skill:
 
