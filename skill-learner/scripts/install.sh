@@ -8,13 +8,18 @@
 #   bash skill-learner/scripts/install.sh
 #
 # Modes:
-#   --all       Install into every known host path (hermes, OpenClaw, Claude Code,
-#               and the generic AgentSkills path).
-#   --remote    Force download from GitHub even when run from a local clone.
-#   --dev       Symlink from the local clone instead of copying (developer mode).
-#               Refuses to symlink from /tmp or /var/tmp.
-#   --ref REF   Use a specific git ref (branch, tag, or commit). Default: main.
-#   -h, --help  Print this help and exit.
+#   --all          Install into every host that is already present on this
+#                  machine (hermes, OpenClaw, Claude Code). If none is
+#                  detected, install only into the generic ~/.agents path.
+#                  Never creates host directories for agents you don't have.
+#   --with LIST    Install into an explicit comma-separated list of hosts.
+#                  Valid host names: hermes, openclaw, claude-code, agents.
+#                  Example: --with hermes,agents
+#   --remote       Force download from GitHub even when run from a local clone.
+#   --dev          Symlink from the local clone instead of copying (developer
+#                  mode). Refuses to symlink from /tmp or /var/tmp.
+#   --ref REF      Use a specific git ref (branch, tag, or commit). Default: main.
+#   -h, --help     Print this help and exit.
 
 set -euo pipefail
 
@@ -25,14 +30,16 @@ SKILL_NAME="skill-learner"
 mode_all=false
 mode_remote=false
 mode_dev=false
+with_list=""
 
 print_help() {
-  sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --all)     mode_all=true; shift ;;
+    --with)    with_list="$2"; shift 2 ;;
     --remote)  mode_remote=true; shift ;;
     --dev)     mode_dev=true; shift ;;
     --ref)     REF="$2"; shift 2 ;;
@@ -41,16 +48,45 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# Whether a given host appears to be installed on this machine.
+host_present() {
+  case "$1" in
+    hermes)      command -v hermes   >/dev/null 2>&1 || [ -d "$HOME/.hermes" ] ;;
+    openclaw)    command -v openclaw >/dev/null 2>&1 || [ -d "$HOME/.openclaw" ] ;;
+    claude-code) command -v claude   >/dev/null 2>&1 || [ -d "$HOME/.claude" ] ;;
+    agents)      [ -d "$HOME/.agents" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+# Install path for a given host name.
+host_path() {
+  case "$1" in
+    hermes)      echo "$HOME/.hermes/skills/$SKILL_NAME" ;;
+    openclaw)    echo "$HOME/.openclaw/skills/$SKILL_NAME" ;;
+    claude-code) echo "$HOME/.claude/skills/$SKILL_NAME" ;;
+    agents)      echo "$HOME/.agents/skills/$SKILL_NAME" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Friendly label for a host name.
+host_label() {
+  case "$1" in
+    hermes)      echo "hermes-agent" ;;
+    openclaw)    echo "OpenClaw" ;;
+    claude-code) echo "Claude Code" ;;
+    agents)      echo "AgentSkills generic" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+# Auto-detect the single best host for default mode.
 detect_host() {
-  if command -v hermes >/dev/null 2>&1 || [ -d "$HOME/.hermes" ]; then
-    echo hermes
-  elif command -v openclaw >/dev/null 2>&1 || [ -d "$HOME/.openclaw" ]; then
-    echo openclaw
-  elif [ -d "$HOME/.claude/skills" ] || command -v claude >/dev/null 2>&1; then
-    echo claude-code
-  else
-    echo generic
-  fi
+  if host_present hermes;      then echo hermes;      return; fi
+  if host_present openclaw;    then echo openclaw;    return; fi
+  if host_present claude-code; then echo claude-code; return; fi
+  echo agents
 }
 
 # Try to locate the local clone (when this script lives next to a SKILL.md).
@@ -106,8 +142,12 @@ else
 fi
 
 install_one() {
-  local dest="$1"
-  local label="$2"
+  local host="$1"
+  local dest
+  dest="$(host_path "$host")"
+  local label
+  label="$(host_label "$host")"
+
   mkdir -p "$(dirname "$dest")"
 
   # Remove existing install (regular dir or symlink) before writing.
@@ -124,22 +164,38 @@ install_one() {
   fi
 }
 
-if $mode_all; then
-  install_one "$HOME/.hermes/skills/$SKILL_NAME"   "hermes-agent"
-  install_one "$HOME/.openclaw/skills/$SKILL_NAME" "OpenClaw"
-  install_one "$HOME/.agents/skills/$SKILL_NAME"   "AgentSkills generic"
-  install_one "$HOME/.claude/skills/$SKILL_NAME"   "Claude Code"
+# Determine target hosts.
+targets=()
+
+if [ -n "$with_list" ]; then
+  # Explicit list — install into exactly these hosts.
+  IFS=',' read -r -a __with_arr <<<"$with_list"
+  for h in "${__with_arr[@]}"; do
+    h="$(echo "$h" | tr -d '[:space:]')"
+    case "$h" in
+      hermes|openclaw|claude-code|agents) targets+=("$h") ;;
+      *) echo "Unknown host in --with: $h (valid: hermes, openclaw, claude-code, agents)" >&2; exit 7 ;;
+    esac
+  done
+elif $mode_all; then
+  # Only install into hosts that already exist on this machine.
+  for h in hermes openclaw claude-code; do
+    if host_present "$h"; then
+      targets+=("$h")
+    fi
+  done
+  # If nothing detected, fall back to the generic LCD path only.
+  if [ ${#targets[@]} -eq 0 ]; then
+    targets=(agents)
+  fi
 else
-  host="$(detect_host)"
-  case "$host" in
-    hermes)      install_one "$HOME/.hermes/skills/$SKILL_NAME"   "hermes-agent" ;;
-    openclaw)    install_one "$HOME/.openclaw/skills/$SKILL_NAME" "OpenClaw" ;;
-    claude-code) install_one "$HOME/.claude/skills/$SKILL_NAME"   "Claude Code" ;;
-    generic|*)   install_one "$HOME/.agents/skills/$SKILL_NAME"   "AgentSkills generic" ;;
-  esac
-  echo
-  echo "Detected host: $host"
+  # Default: single best detected host.
+  targets=("$(detect_host)")
 fi
+
+for h in "${targets[@]}"; do
+  install_one "$h"
+done
 
 echo
 if $mode_dev; then
@@ -150,6 +206,16 @@ else
   echo "Mode: local install (copied from $LOCAL_SRC into target)."
 fi
 
-if ! $mode_all; then
-  echo "Tip: re-run with --all to install into every known host path."
+if [ -z "$with_list" ] && ! $mode_all; then
+  # Show the --all tip only if other hosts are actually present.
+  other_present=false
+  for h in hermes openclaw claude-code; do
+    if [ "$h" != "${targets[0]}" ] && host_present "$h"; then
+      other_present=true
+      break
+    fi
+  done
+  if $other_present; then
+    echo "Tip: re-run with --all to install into every detected host on this machine."
+  fi
 fi
