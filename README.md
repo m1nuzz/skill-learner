@@ -16,14 +16,17 @@ and [Claude Code](https://platform.claude.com/docs/en/agents-and-tools/agent-ski
 When the user asks the agent to "learn how to do X" or "figure it out and save it as a
 skill", `skill-learner` activates and walks the agent through a structured loop:
 
-1. **Define** — restate the goal and lock in falsifiable success criteria.
-2. **Attempt loop** — plan a small action, execute it, observe the actual result,
-   reflect on the gap, fix the smallest thing, and retry. Up to a fixed retry budget.
-3. **Verify** — confirm the final result against the success criteria and check
-   reproducibility.
-4. **Codify** — once a working procedure exists, write a clean, distilled `SKILL.md`
-   for the new capability and save it under the host's skills directory so the agent
-   can re-use the workflow later without re-learning it.
+1. **Define** — restate the goal, lock in falsifiable success criteria, and run
+   *case retrieval* against existing skills to avoid duplicates.
+2. **Attempt loop** — separate `Planner` / `Critic` / `Verifier` roles drive
+   plan → validate → execute → reflect → retry. Adaptive stopping replaces a
+   fixed retry budget (no progress for 2 turns → pivot).
+3. **Verify** — run the `Verifier` in a fresh prompt against an **external tool
+   signal** (tests, type-checker, schema validator, smoke run). Pure LLM
+   judgement is never sufficient.
+4. **Codify** — write a clean, distilled `SKILL.md`, extract reusable
+   sub-skills, persist a `lessons.md` alongside, and save to the host's
+   correct skills directory (see `skill-learner/references/host-paths.md`).
 
 The point is to convert one-off problem solving into **persistent, transferable
 procedural knowledge** the agent owns.
@@ -51,45 +54,17 @@ Trigger this skill when:
 
 ## Installation
 
-The skill is hosted-agnostic; just copy or symlink the `skill-learner/` directory
-into your host's skills folder.
-
-### hermes-agent
+Quick install with the bundled cross-host installer:
 
 ```bash
 git clone https://github.com/m1nuzz/skill-learner.git
-ln -s "$(pwd)/skill-learner/skill-learner" "$HOME/.hermes/skills/skill-learner"
+cd skill-learner
+bash skill-learner/scripts/install.sh           # auto-detects the host
+bash skill-learner/scripts/install.sh --all     # symlink into every known location
 ```
 
-Then `/skill-learner` becomes available as a slash command in any hermes CLI or
-messaging session.
-
-### OpenClaw
-
-For the active workspace (highest precedence):
-
-```bash
-git clone https://github.com/m1nuzz/skill-learner.git
-ln -s "$(pwd)/skill-learner/skill-learner" "<workspace>/skills/skill-learner"
-```
-
-Or for all local agents:
-
-```bash
-ln -s "$(pwd)/skill-learner/skill-learner" "$HOME/.agents/skills/skill-learner"
-```
-
-### Claude Code
-
-```bash
-git clone https://github.com/m1nuzz/skill-learner.git
-ln -s "$(pwd)/skill-learner/skill-learner" "$HOME/.claude/skills/skill-learner"
-```
-
-### Generic AgentSkills host
-
-The lowest-common-denominator path is `~/.agents/skills/<name>/SKILL.md` — most
-AgentSkills-compatible runtimes will pick it up from there.
+For manual install per host (hermes-agent, OpenClaw, Claude Code, generic
+AgentSkills runtime), see [`INSTALL.md`](INSTALL.md).
 
 ---
 
@@ -98,12 +73,29 @@ AgentSkills-compatible runtimes will pick it up from there.
 ```
 skill-learner/
 ├── README.md                     # This file
+├── INSTALL.md                    # Per-host installation instructions
+├── LICENSE                       # MIT
 └── skill-learner/
-    └── SKILL.md                  # The skill definition (frontmatter + procedure)
+    ├── SKILL.md                  # Frontmatter + procedure (entry point)
+    ├── references/               # Loaded on demand — progressive disclosure
+    │   ├── role-separation.md
+    │   ├── verification-patterns.md
+    │   ├── host-paths.md
+    │   ├── case-retrieval.md
+    │   ├── subgoal-extraction.md
+    │   ├── library-maintenance.md
+    │   ├── failure-modes.md
+    │   └── coexistence.md
+    ├── scripts/
+    │   ├── detect_host.sh        # Prints hermes | openclaw | claude-code | generic
+    │   └── install.sh            # Cross-host symlink installer
+    └── evals/
+        └── evals.json            # Trigger and behavior tests
 ```
 
-The skill is intentionally a single self-contained `SKILL.md` for now. See the
-[Roadmap](#roadmap) below for planned subfolders (`references/`, `scripts/`, `evals/`).
+The top-level `SKILL.md` is the entry point that hosts load by default; the
+`references/` files are loaded only when the agent follows an internal link
+to them (progressive disclosure).
 
 ---
 
@@ -119,21 +111,25 @@ The three tools are complementary, not replacements for each other.
 
 ---
 
-## Roadmap
+## What changed in v2.0
 
-Improvements planned (tracked in
-[`skill-learner-improvements.md`](#references) — see references below):
+The v2.0 rewrite applies findings from the research listed in the
+[References](#references) section:
 
-- Split `Critic` and `Verifier` roles for tool-grounded verification.
-- Persist `lessons.md` alongside each generated `SKILL.md` (causal abstractions, not
-  raw failure logs).
-- Replace fixed 5-retry budget with adaptive stopping (no progress for 2 turns → pivot).
-- Case-conditioned prompting: scan existing skills before generating a new one to
-  avoid duplicates and inherit conventions.
-- Periodic library maintenance: prune stale or failing skills.
-- Subgoal extraction: decompose successful workflows into reusable sub-skills.
-- `references/`, `scripts/`, and `evals/` subfolders for progressive disclosure.
-- Cross-host installer (`scripts/install.sh`) that detects hermes / OpenClaw /
+- `Planner` / `Critic` / `Verifier` roles are split; the Verifier runs with a
+  fresh prompt and requires an external tool signal to return `YES`.
+- Adaptive stopping replaces the fixed 5-retry budget — no measurable progress
+  for 2 iterations triggers a pivot.
+- `Phase 1` runs **case retrieval** against existing skills before generating a
+  new one (avoids duplicates and library bloat).
+- `Phase 4` extracts reusable **sub-skills** instead of saving monolithic
+  workflows, and is **host-aware** when writing to the skills directory.
+- A `lessons.md` is persisted alongside each generated `SKILL.md` to capture
+  causal lessons learned (not raw failure logs).
+- A `Phase 5` maintenance routine periodically prunes stale and failing skills.
+- Progressive disclosure: `references/`, `scripts/`, and `evals/` are now
+  populated.
+- Cross-host installer (`scripts/install.sh`) detects hermes / OpenClaw /
   Claude Code and installs into the correct path.
 
 ---

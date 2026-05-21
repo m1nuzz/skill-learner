@@ -1,0 +1,45 @@
+{
+  "$schema": "https://agentskills.io/schemas/evals.json",
+  "skill": "skill-learner",
+  "description": "Trigger and behavior tests for skill-learner.",
+  "examples": [
+    {
+      "name": "Explicit learn-and-save request",
+      "prompt": "Learn how to convert a directory of markdown files into a single PDF, then save it as a skill.",
+      "expected": {
+        "skill_loaded": "skill-learner",
+        "behaviors": [
+          "Restates the goal and defines falsifiable success criteria.",
+          "Runs case retrieval against existing skills before generating a new one.",
+          "Runs the Verifier with a fresh prompt and an external tool signal (e.g. pdfinfo or file).",
+          "Saves a new SKILL.md only after the Verifier returns YES."
+        ]
+      }
+    },
+    {
+      "name": "Implicit teach-yourself request",
+      "prompt": "Teach yourself to use the GitHub CLI to open a draft PR with reviewers and labels, and save the workflow.",
+      "expected": {
+        "skill_loaded": "skill-learner",
+        "behaviors": [
+          "Attempts a small first action with gh CLI and observes output.",
+          "On failure, the Critic produces cause + lesson + smallest fix; does not repeat the same approach.",
+          "Verifier confirms a draft PR exists via 'gh pr view' before codifying.",
+          "Saves the generated skill to the host's preferred path (see references/host-paths.md)."
+        ]
+      }
+    },
+    {
+      "name": "Negative trigger — workflow already known",
+      "prompt": "I'll show you the exact steps: run pip install -e ., then pytest. Save this as a skill.",
+      "expected": {
+        "skill_loaded": "skill-creator-or-equivalent",
+        "behaviors": [
+          "Does NOT load skill-learner because the workflow is already known.",
+          "Defers to the host's built-in skill-creator or Skill Workshop instead.",
+          "If only skill-learner is available, runs Phase 4 codify directly without the attempt loop."
+        ]
+      }
+    }
+  ]
+}
