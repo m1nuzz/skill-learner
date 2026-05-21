@@ -30,6 +30,33 @@
       }
     },
     {
+      "name": "Russian-language trigger ('научись')",
+      "prompt": "научись искать информацию в интернете и проверять источники, потом сохрани как скилл",
+      "expected": {
+        "skill_loaded": "skill-learner",
+        "behaviors": [
+          "Recognises 'научись' as a learn-by-trial trigger and loads skill-learner.",
+          "Phase 1: restates the goal in one sentence and defines falsifiable success criteria (e.g. 'fetched the actual article body, not just the search snippet, before answering').",
+          "Phase 2: attempts the workflow with real tool calls (web_search + fetch_page), observes outputs, refines.",
+          "Phase 3: Verifier confirms via an external signal (e.g. response contains direct quotes from the fetched page, not just from the snippet).",
+          "Phase 4: saves a new skill (e.g. 'deep-web-research') and closes with the Result / Verification signal / Skill saved / Lessons captured block.",
+          "Does NOT immediately answer the user's underlying topic as a one-shot."
+        ]
+      }
+    },
+    {
+      "name": "Explicit invocation by name without trigger phrase",
+      "prompt": "skill-learner научись пользоваться gh CLI для создания PR",
+      "expected": {
+        "skill_loaded": "skill-learner",
+        "behaviors": [
+          "Treats the 'skill-learner' name prefix as a hard invocation contract.",
+          "Runs Phases 1 → 2 → 3 → 4 in order; does not skip to executing the gh commands as a one-shot.",
+          "Concludes with the Output at the end block."
+        ]
+      }
+    },
+    {
       "name": "Negative trigger — workflow already known",
       "prompt": "I'll show you the exact steps: run pip install -e ., then pytest. Save this as a skill.",
       "expected": {
@@ -38,6 +65,18 @@
           "Does NOT load skill-learner because the workflow is already known.",
           "Defers to the host's built-in skill-creator or Skill Workshop instead.",
           "If only skill-learner is available, runs Phase 4 codify directly without the attempt loop."
+        ]
+      }
+    },
+    {
+      "name": "Negative trigger — genuine one-shot",
+      "prompt": "научись узнавать погоду в Киеве — какая там сейчас?",
+      "expected": {
+        "skill_loaded": "skill-learner",
+        "behaviors": [
+          "Phase 1 surfaces that this is a one-shot lookup, not a reusable workflow.",
+          "Tells the user explicitly: 'This is a one-shot — no skill will be created.'",
+          "Then answers the underlying question (current weather) normally."
         ]
       }
     }

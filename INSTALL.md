@@ -16,16 +16,28 @@ curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-lea
 ```
 
 The script auto-detects your host and downloads the skill folder into the
-correct directory. To install into every known host path at once:
+correct directory. To install into **every host that is actually present on
+your machine** (it never creates `~/.openclaw/` if you don't have OpenClaw,
+etc.):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash -s -- --all
 ```
 
+To force install into specific hosts (creates the directories if they
+don't exist):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh \
+  | bash -s -- --with hermes,agents
+```
+
+Valid `--with` host names: `hermes`, `openclaw`, `claude-code`, `agents`.
+
 To pin to a specific tag or commit:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash -s -- --ref v2.0.0
+curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash -s -- --ref v2.1.0
 ```
 
 ## Install from a local clone
@@ -35,9 +47,18 @@ If you've already cloned the repo:
 ```bash
 git clone https://github.com/m1nuzz/skill-learner.git
 cd skill-learner
-bash skill-learner/scripts/install.sh           # auto-detects host
-bash skill-learner/scripts/install.sh --all     # installs into every known path
+bash skill-learner/scripts/install.sh                       # auto-detects host
+bash skill-learner/scripts/install.sh --all                 # every host present on this machine
+bash skill-learner/scripts/install.sh --with hermes,agents  # explicit, force-create dirs
 ```
+
+`--all` only installs into hosts that already exist on your machine (it
+checks for `~/.hermes/`, `~/.openclaw/`, `~/.claude/`, or the corresponding
+CLI binary in `PATH`). It will never create a directory like `~/.openclaw/`
+if you don't have OpenClaw installed.
+
+Use `--with` to override that and force install into a specific list of
+hosts (this *does* create the directories).
 
 The script copies the `skill-learner/` folder into the host's skills
 directory; you can `rm -rf` the clone afterward.

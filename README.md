@@ -61,16 +61,18 @@ copies it into your host's skills directory:
 curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash
 ```
 
-To install into every known host path at once:
+To install into **every host that is actually present on your machine**
+(safe — never creates host directories you don't already use):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/m1nuzz/skill-learner/main/skill-learner/scripts/install.sh | bash -s -- --all
 ```
 
 The installer **copies** the skill folder into the target directory by
-default — no symlinks, so you can delete the source after install. For
-developer mode (symlink from a clone for `git pull`-driven updates) and
-per-host manual install commands, see [`INSTALL.md`](INSTALL.md).
+default — no symlinks, so you can delete the source after install.
+Developer mode (`--dev`, symlink from a clone for `git pull`-driven
+updates), explicit host targeting (`--with hermes,agents`), and per-host
+manual install commands are documented in [`INSTALL.md`](INSTALL.md).
 
 ---
 
@@ -117,10 +119,25 @@ The three tools are complementary, not replacements for each other.
 
 ---
 
-## What changed in v2.0
+## Changelog
 
-The v2.0 rewrite applies findings from the research listed in the
-[References](#references) section:
+### v2.1.0
+
+- **Invocation contract** added to `SKILL.md` — when the skill is loaded
+  (by name or by trigger phrase), the agent MUST run Phases 1 → 4 in order
+  and conclude with the *Output at the end* block, instead of treating the
+  user's request as a one-shot.
+- **Multilingual triggers** in the `description` field. Russian phrases
+  (*научись X*, *разберись с X*, *выучи X*, *освой X*) are now matched
+  directly without relying on cross-lingual inference.
+- **Safer `--all` install** — `scripts/install.sh --all` only installs
+  into hosts that already exist on the machine and never creates rogue
+  directories like `~/.openclaw/` if you don't have OpenClaw.
+- New `--with hermes,openclaw,claude-code,agents` flag for explicit host
+  targeting.
+- Two new eval cases: Russian trigger and explicit-name invocation.
+
+### v2.0.0
 
 - `Planner` / `Critic` / `Verifier` roles are split; the Verifier runs with a
   fresh prompt and requires an external tool signal to return `YES`.

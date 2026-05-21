@@ -1,7 +1,7 @@
 ---
 name: skill-learner
-description: Learns a new capability by trial and codifies it as a skill. Use when the user says "learn how to X", "teach yourself to X", "figure out X and save it", or "practice until it works then make a skill".
-version: 2.0.0
+description: Runs a learn-by-trial loop and saves the result as a skill. Triggers: "learn how to X", "teach yourself to X", "figure out X and save it", "научись X", "разберись с X", "выучи X", "освой X".
+version: 2.1.0
 author: m1nuzz
 license: MIT
 metadata:
@@ -23,15 +23,44 @@ This skill is host-agnostic and works in hermes-agent, OpenClaw, Claude Code,
 and any other AgentSkills-compatible runtime. See `references/host-paths.md`
 for where generated skills are saved on each host.
 
+## Invocation contract
+
+**Read this first.** When this skill is loaded — whether the user invokes
+it by name (`skill-learner ...`) or via a trigger phrase — the agent MUST:
+
+1. Execute Phases 1 → 2 → 3 → 4 of the procedure below, in order. Do not
+   skip ahead.
+2. **Not** answer the user's underlying request directly as a one-shot. The
+   user invoked this skill to make the agent *learn and codify*, not to
+   get an immediate answer.
+3. Conclude with the **Output at the end** block (Result / Verification
+   signal / Skill saved / Lessons captured) — every field filled in or
+   explicitly marked "not applicable, because …".
+
+The one explicit exception: if Phase 1 reveals the request is a genuine
+one-shot with nothing reusable to capture (e.g. "what is 2+2"), stop at
+Phase 1, tell the user *"This is a one-shot — no skill will be created"*,
+then handle the underlying request normally.
+
 ## When to use
 
 Trigger when:
 
-- The user asks the agent to learn how to do something new ("learn how to use
-  this CLI", "figure out the workflow for X", "teach yourself to X").
+- The user asks the agent to learn how to do something new. Trigger phrases
+  in different languages:
+  - English: *"learn how to X"*, *"teach yourself to X"*, *"figure out the
+    workflow for X"*, *"practice X until it works"*, *"figure out X and
+    save it as a skill"*.
+  - Russian: *"научись X"*, *"разберись с X"*, *"выучи X"*, *"освой X"*,
+    *"практикуйся в X"*, *"разбери X и сделай скилл"*.
 - The agent does not yet know the steps and must discover them by attempting,
   observing failures, correcting, and retrying.
 - The user wants a successful workflow saved as a reusable skill.
+
+The skill body and all generated artifacts (procedures, references, lessons)
+are written in English regardless of the user's language — this keeps the
+skill portable across hosts and avoids translation drift. The agent
+converses with the user in their language.
 
 ## When not to use
 
